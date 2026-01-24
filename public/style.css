@@ -63,11 +63,11 @@ form input, form textarea {
 
 form input:focus, form textarea:focus {
     outline: none;
-    border-color: #4b6cb7;
+    border-color: #ec1818;
 }
 
 .btn {
-    background: #4b6cb7;
+    background: #ec1818;
     color: white;
     padding: 12px 25px;
     border: none;
@@ -82,13 +82,13 @@ form input:focus, form textarea:focus {
 }
 
 .btn:hover {
-    background: #3a559f;
+    background: #9c1d11;
     transform: translateY(-2px);
 }
 
 /* Список идей */
 .ideas-list h2 {
-    color: #4b6cb7;
+    color: #bc4949;
     margin-bottom: 20px;
 }
 
@@ -115,7 +115,7 @@ form input:focus, form textarea:focus {
 
 .idea-title {
     font-size: 1.3rem;
-    color: #182848;
+    color: #4e1212;
     margin-bottom: 5px;
 }
 
@@ -163,7 +163,7 @@ form input:focus, form textarea:focus {
 .vote-count {
     font-weight: bold;
     font-size: 1.1rem;
-    color: #4b6cb7;
+    color: #b8504c;
 }
 
 .comment-btn {
@@ -235,12 +235,12 @@ form input:focus, form textarea:focus {
     padding: 15px;
     margin-bottom: 15px;
     border-radius: 5px;
-    border-left: 4px solid #4b6cb7;
+    border-left: 4px solid #b84c4c;
 }
 
 .comment-author {
     font-weight: bold;
-    color: #4b6cb7;
+    color: #b84c4c;
     margin-bottom: 5px;
 }
 
@@ -293,3 +293,4 @@ footer {
         align-items: flex-start;
     }
 }
+
