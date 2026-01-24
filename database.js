@@ -1,23 +1,39 @@
 const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs');
 const path = require('path');
 
 class Database {
     constructor() {
-        // Используем путь, который работает и локально и на Render
-        const dbPath = process.env.NODE_ENV === 'production' 
-            ? '/tmp/school.db'  // На Render используем /tmp директорию
-            : './school.db';    // Локально используем текущую директорию
+        // На Render используем /tmp папку, но с восстановлением из бэкапа
+        this.dbPath = '/tmp/school.db';
+        this.backupPath = '/tmp/school_backup.db';
         
-        this.db = new sqlite3.Database(dbPath, (err) => {
+        // Проверяем, есть ли бэкап
+        if (fs.existsSync(this.backupPath)) {
+            console.log('Восстанавливаем базу из бэкапа...');
+            fs.copyFileSync(this.backupPath, this.dbPath);
+        }
+        
+        this.db = new sqlite3.Database(this.dbPath, (err) => {
             if (err) {
-                console.error('Ошибка подключения к базе данных:', err);
+                console.error('Ошибка подключения к БД:', err);
             } else {
-                console.log('Подключено к базе данных SQLite по пути:', dbPath);
+                console.log('Подключено к базе данных:', this.dbPath);
                 this.initDatabase();
             }
         });
+        
+        // Создаем бэкап каждые 4 часа
+        setInterval(() => this.createBackup(), 4 * 60 * 60 * 1000);
     }
-
+    
+    createBackup() {
+        if (fs.existsSync(this.dbPath)) {
+            fs.copyFileSync(this.dbPath, this.backupPath);
+            console.log('Создан бэкап базы данных');
+        }
+    }
+    
     initDatabase() {
         // Таблица для идей (проектов)
         this.db.run(`
@@ -133,5 +149,6 @@ class Database {
         );
     }
 }
+
 
 module.exports = new Database();
