@@ -47,7 +47,7 @@ header .subtitle {
 }
 
 .idea-form h2 {
-    color: #4b6cb7;
+    color: #b63a5a;
     margin-bottom: 20px;
 }
 
@@ -115,7 +115,7 @@ form input:focus, form textarea:focus {
 
 .idea-title {
     font-size: 1.3rem;
-    color: #4e1212;
+    color: #ffffff;
     margin-bottom: 5px;
 }
 
@@ -293,6 +293,7 @@ footer {
         align-items: flex-start;
     }
 }
+
 
 
 
