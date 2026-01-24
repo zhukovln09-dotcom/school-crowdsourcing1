@@ -47,7 +47,7 @@ header .subtitle {
 }
 
 .idea-form h2 {
-    color: #b63a5a;
+    color: linear-gradient(135deg, #ff1b18 0%, #e318ff 100%);;
     margin-bottom: 20px;
 }
 
@@ -63,11 +63,11 @@ form input, form textarea {
 
 form input:focus, form textarea:focus {
     outline: none;
-    border-color: #ec1818;
+    border-color: linear-gradient(135deg, #ff1b18 0%, #e318ff 100%);
 }
 
 .btn {
-    background: #ec1818;
+    background: linear-gradient(135deg, #ff1b18 0%, #e318ff 100%);
     color: white;
     padding: 12px 25px;
     border: none;
@@ -82,13 +82,13 @@ form input:focus, form textarea:focus {
 }
 
 .btn:hover {
-    background: #9c1d11;
+    background: linear-gradient(135deg, #ff1b18 0%, #e318ff 100%);
     transform: translateY(-2px);
 }
 
 /* Список идей */
 .ideas-list h2 {
-    color: #bc4949;
+    color: linear-gradient(135deg, #ff1b18 0%, #e318ff 100%);
     margin-bottom: 20px;
 }
 
@@ -293,6 +293,7 @@ footer {
         align-items: flex-start;
     }
 }
+
 
 
 
