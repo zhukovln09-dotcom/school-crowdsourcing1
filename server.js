@@ -101,25 +101,10 @@ app.get('/api/ideas/:id/comments', (req, res) => {
         }
     });
 });
-
-process.on('SIGTERM', () => {
-    console.log('Сервер останавливается, создаем финальный бэкап...');
-    if (db.createBackup) {
-        db.createBackup();
-    }
-    process.exit(0);
-});
-
-process.on('SIGINT', () => {
-    console.log('Сервер прерывается, создаем финальный бэкап...');
-    if (db.createBackup) {
-        db.createBackup();
-    }
-    process.exit(0);
-});
 // Запуск сервера
 app.listen(PORT, () => {
     console.log(`Сервер запущен на порту ${PORT}`);
     console.log(`Откройте в браузере: http://localhost:${PORT}`);
 
 });
+
