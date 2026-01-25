@@ -81,7 +81,7 @@ class CrowdsourcingApp {
                             </button>
                             <!-- СЧЕТЧИК ГОЛОСОВ -->
                             <span class="vote-count" id="vote-count-${idea.id}">
-                                ${idea.votes || 0}
+                                ${idea.votes}
                             </span>
                         </div>
                         
@@ -714,3 +714,4 @@ window.openComments = function(ideaId, title) {
         window.openCommentsFallback(ideaId, title);
     }
 };
+
