@@ -3,29 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Вместе</title>
+    <title>Вместе - Школьная платформа</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><i class="fab fa-jedi-order"></i>Вместе</h1>
+            <div class="header-top">
+                <h1><i class="fab fa-jedi-order"></i>Вместе</h1>
+                <div id="userInfo" class="user-info-container">
+                    <!-- Здесь будет информация о пользователе -->
+                </div>
+            </div>
             <p class="subtitle">Предлагайте идеи, голосуйте и улучшайте нашу школу вместе!</p>
         </header>
 
+        <nav class="main-nav">
+            <div class="nav-left">
+                <button class="nav-btn" onclick="window.showAuthModal()">
+                    <i class="fas fa-sign-in-alt"></i> Войти
+                </button>
+                <button class="nav-btn" onclick="window.showAuthModal()">
+                    <i class="fas fa-user-plus"></i> Регистрация
+                </button>
+            </div>
+            <div class="nav-right">
+                <div class="no-auth-only">
+                    <button class="nav-btn nav-btn-special" onclick="window.showAuthModal()">
+                        <i class="fas fa-key"></i> Вход по коду
+                    </button>
+                </div>
+                <div class="auth-only" style="display: none;">
+                    <button class="nav-btn" onclick="app.logout()">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </button>
+                </div>
+                <div class="admin-only" style="display: none;">
+                    <button class="nav-btn nav-btn-admin" onclick="window.showAdminPanel()">
+                        <i class="fas fa-crown"></i> Админ-панель
+                    </button>
+                </div>
+                <div class="moderator-only" style="display: none;">
+                    <button class="nav-btn nav-btn-moderator" onclick="alert('Панель модератора в разработке')">
+                        <i class="fas fa-shield-alt"></i> Модерация
+                    </button>
+                </div>
+                <div class="content-manager-only" style="display: none;">
+                    <button class="nav-btn nav-btn-content" onclick="app.loadIdeas()">
+                        <i class="fas fa-star"></i> Избранное
+                    </button>
+                </div>
+            </div>
+        </nav>
+
         <main>
             <!-- Форма для добавления идеи -->
-            <section class="idea-form">
+            <section class="idea-form auth-only" style="display: none;">
                 <h2><i class="fas fa-plus-circle"></i> Предложить новую идею</h2>
                 <form id="ideaForm">
-                    <input type="text" id="author" placeholder="Ваше имя" required>
                     <input type="text" id="title" placeholder="Название идеи" required>
                     <textarea id="description" placeholder="Опишите вашу идею подробнее..." rows="4" required></textarea>
                     <button type="submit" class="btn">
                         <i class="fas fa-paper-plane"></i> Опубликовать идею
                     </button>
                 </form>
+            </section>
+
+            <!-- Сообщение для неавторизованных -->
+            <section class="no-auth-only idea-form">
+                <div class="auth-required">
+                    <i class="fas fa-lock"></i>
+                    <h3>Для добавления идей требуется авторизация</h3>
+                    <p>Войдите или зарегистрируйтесь, чтобы предлагать идеи, голосовать и комментировать</p>
+                    <button class="btn" onclick="window.showAuthModal()">
+                        <i class="fas fa-sign-in-alt"></i> Войти или зарегистрироваться
+                    </button>
+                </div>
             </section>
 
             <!-- Список идей -->
@@ -40,6 +94,7 @@
         </main>
 
         <footer>
+            <p>Школьная краудсорсинговая платформа "Вместе" © 2024</p>
             <p>Для учеников, учителей и родителей.</p>
         </footer>
     </div>
@@ -51,13 +106,167 @@
             <h3 id="modalTitle">Комментарии</h3>
             <div class="comments-section">
                 <div id="commentsContainer"></div>
-                <form id="commentForm">
-                    <input type="text" id="commentAuthor" placeholder="Ваше имя" required>
+                <form id="commentForm" class="auth-only">
                     <textarea id="commentText" placeholder="Ваш комментарий..." rows="3" required></textarea>
                     <button type="submit" class="btn">
                         <i class="fas fa-comment"></i> Добавить комментарий
                     </button>
                 </form>
+                <div class="no-auth-only" style="text-align: center; padding: 20px;">
+                    <p>Для добавления комментариев требуется авторизация</p>
+                    <button class="btn" onclick="window.showAuthModal()">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно авторизации -->
+    <div id="authModal" class="modal">
+        <div class="modal-content auth-modal">
+            <span class="close">&times;</span>
+            <h2><i class="fas fa-user-circle"></i> Авторизация</h2>
+            
+            <!-- Форма входа -->
+            <form id="loginForm" class="auth-form">
+                <h3>Вход</h3>
+                <input type="email" id="loginEmail" placeholder="Email" required>
+                <input type="password" id="loginPassword" placeholder="Пароль" required>
+                <button type="submit" class="btn">
+                    <i class="fas fa-sign-in-alt"></i> Войти
+                </button>
+                <p class="auth-switch">
+                    Нет аккаунта? <a href="#" id="showRegister">Зарегистрироваться</a>
+                </p>
+                <p class="auth-switch">
+                    Есть пригласительный код? <a href="#" id="showCodeLogin">Войти по коду</a>
+                </p>
+            </form>
+
+            <!-- Форма регистрации -->
+            <form id="registerForm" class="auth-form" style="display: none;">
+                <h3>Регистрация</h3>
+                <input type="email" id="registerEmail" placeholder="Email" required>
+                <input type="text" id="registerUsername" placeholder="Имя пользователя" required>
+                <input type="password" id="registerPassword" placeholder="Пароль (минимум 6 символов)" required>
+                <button type="submit" class="btn">
+                    <i class="fas fa-user-plus"></i> Зарегистрироваться
+                </button>
+                <p class="auth-switch">
+                    Уже есть аккаунт? <a href="#" id="showLogin">Войти</a>
+                </p>
+            </form>
+
+            <!-- Форма верификации -->
+            <form id="verifyForm" class="auth-form" style="display: none;">
+                <h3>Подтверждение email</h3>
+                <p>На указанный email отправлен код подтверждения</p>
+                <input type="email" id="verifyEmail" placeholder="Email" required readonly>
+                <input type="text" id="verifyCode" placeholder="Код подтверждения" required>
+                <button type="submit" class="btn">
+                    <i class="fas fa-check-circle"></i> Подтвердить
+                </button>
+                <p class="auth-switch">
+                    <a href="#" id="showLogin">Вернуться к входу</a>
+                </p>
+            </form>
+
+            <!-- Форма входа по коду -->
+            <form id="codeLoginForm" class="auth-form" style="display: none;">
+                <h3>Вход по пригласительному коду</h3>
+                <p>Введите код, полученный от администратора</p>
+                <input type="text" id="inviteCode" placeholder="Пригласительный код" required>
+                <button type="submit" class="btn">
+                    <i class="fas fa-key"></i> Проверить код
+                </button>
+                <p class="auth-switch">
+                    <a href="#" id="showLogin">Обычный вход</a>
+                </p>
+            </form>
+
+            <!-- Форма завершения регистрации по коду -->
+            <form id="codeRegisterForm" class="auth-form" style="display: none;">
+                <h3>Завершение регистрации</h3>
+                <input type="email" id="codeRegisterEmail" placeholder="Email" required>
+                <input type="text" id="codeRegisterUsername" placeholder="Имя пользователя" required>
+                <input type="password" id="codeRegisterPassword" placeholder="Пароль (минимум 6 символов)" required>
+                <button type="submit" class="btn">
+                    <i class="fas fa-check"></i> Завершить регистрацию
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Админ-панель -->
+    <div id="adminModal" class="modal">
+        <div class="modal-content admin-modal">
+            <span class="close">&times;</span>
+            <h2><i class="fas fa-crown"></i> Админ-панель</h2>
+            
+            <div class="admin-sections">
+                <!-- Создание пригласительных кодов -->
+                <section class="admin-section">
+                    <h3><i class="fas fa-key"></i> Создать пригласительный код</h3>
+                    <form id="createInviteForm">
+                        <div class="form-group">
+                            <label for="inviteRole">Роль:</label>
+                            <select id="inviteRole" required>
+                                <option value="moderator">Модератор</option>
+                                <option value="content_manager">Контент-менеджер</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="inviteMaxUses">Максимум использований:</label>
+                            <input type="number" id="inviteMaxUses" value="1" min="1" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="inviteExpires">Срок действия (часов):</label>
+                            <input type="number" id="inviteExpires" value="720" min="1" max="8760">
+                        </div>
+                        <button type="submit" class="btn">
+                            <i class="fas fa-plus-circle"></i> Создать код
+                        </button>
+                    </form>
+                    
+                    <div class="code-result" style="margin-top: 20px; display: none;">
+                        <h4>Код создан:</h4>
+                        <div class="generated-code">
+                            <code id="createdCode"></code>
+                            <p>Срок действия до: <span id="codeExpires"></span></p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Статистика -->
+                <section class="admin-section">
+                    <h3><i class="fas fa-chart-bar"></i> Статистика</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <i class="fas fa-lightbulb"></i>
+                            <div class="stat-value" id="statIdeas">0</div>
+                            <div class="stat-label">Идей</div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-comments"></i>
+                            <div class="stat-value" id="statComments">0</div>
+                            <div class="stat-label">Комментариев</div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-thumbs-up"></i>
+                            <div class="stat-value" id="statVotes">0</div>
+                            <div class="stat-label">Голосов</div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-users"></i>
+                            <div class="stat-value" id="statUsers">0</div>
+                            <div class="stat-label">Пользователей</div>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="app.loadStats()">
+                        <i class="fas fa-sync-alt"></i> Обновить статистику
+                    </button>
+                </section>
             </div>
         </div>
     </div>
@@ -65,5 +274,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
-
