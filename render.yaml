@@ -1,13 +1,22 @@
-# render.yaml
 services:
   - type: web
-    name: school-crowdsourcing-mongo
+    name: school-crowdsourcing-auth
     env: node
     buildCommand: npm install
     startCommand: npm start
     envVars:
       - key: MONGODB_URI
-        sync: false  # Нужно будет вписать вручную в панели Render
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: ADMIN_EMAIL
+        value: admin@school.ru
+      - key: ADMIN_PASSWORD
+        value: admin123
       - key: NODE_ENV
         value: production
       - key: PORT
