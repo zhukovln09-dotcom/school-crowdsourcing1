@@ -15,7 +15,72 @@ class Database {
     }
 
     initDatabase() {
-        // Таблица для идей (проектов)
+        // Добавляем в initDatabase():
+        async initDatabase() {
+            try {
+                // Существующие таблицы...
+        
+                // Таблица пользователей
+                await this.pool.query(`
+                    CREATE TABLE IF NOT EXISTS users (
+                        id SERIAL PRIMARY KEY,
+                        email VARCHAR(255) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        username VARCHAR(100) NOT NULL,
+                        role VARCHAR(50) DEFAULT 'user', -- user, moderator, content_manager, admin
+                        email_verified BOOLEAN DEFAULT FALSE,
+                        verification_code VARCHAR(10),
+                        verification_expires TIMESTAMP,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        last_login TIMESTAMP,
+                        is_active BOOLEAN DEFAULT TRUE
+                    )
+                `);
+
+        // Таблица сессий
+                await this.pool.query(`
+                    CREATE TABLE IF NOT EXISTS sessions (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                        token VARCHAR(255) UNIQUE NOT NULL,
+                        ip_address VARCHAR(45),
+                        user_agent TEXT,
+                        expires_at TIMESTAMP NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                `);
+
+        // Таблица пригласительных кодов
+                await this.pool.query(`
+                    CREATE TABLE IF NOT EXISTS invitation_codes (
+                        id SERIAL PRIMARY KEY,
+                        code VARCHAR(50) UNIQUE NOT NULL,
+                        role VARCHAR(50) NOT NULL, -- moderator, content_manager
+                        created_by INTEGER REFERENCES users(id),
+                        used_by INTEGER REFERENCES users(id),
+                        used_at TIMESTAMP,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        expires_at TIMESTAMP,
+                        max_uses INTEGER DEFAULT 1,
+                        use_count INTEGER DEFAULT 0
+                    )
+                `);
+
+        // Добавляем поля в таблицу идей для контент-менеджмента
+                await this.pool.query(`
+                    ALTER TABLE ideas 
+                    ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS reviewed_by INTEGER REFERENCES users(id),
+                    ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP,
+                    ADD COLUMN IF NOT EXISTS review_notes TEXT
+                `);
+
+                console.log('✅ Таблицы авторизации созданы/обновлены');
+
+            } catch (error) {
+                console.error('❌ Ошибка инициализации БД:', error);
+            }
+        }
         this.db.run(`
             CREATE TABLE IF NOT EXISTS ideas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -129,3 +194,4 @@ class Database {
 }
 
 module.exports = new Database();
+
