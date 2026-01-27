@@ -6,7 +6,6 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "mongo-dev": "MONGODB_URI=ваша_строка_подключения nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
