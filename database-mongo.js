@@ -1,4 +1,4 @@
-// database-mongo.js - для MongoDB Atlas
+// database-mongo.js - для MongoDB Atlas с авторизацией
 const mongoose = require('mongoose');
 
 // Строка подключения к MongoDB Atlas
@@ -13,13 +13,107 @@ mongoose.connect(MONGODB_URI, {
     console.log('✅ Успешно подключено к MongoDB Atlas');
 }).catch((error) => {
     console.error('❌ Ошибка подключения к MongoDB:', error.message);
-    console.log('💡 Проверьте:');
-    console.log('1. Правильный ли пароль в строке подключения?');
-    console.log('2. Добавили ли IP 0.0.0.0/0 в Network Access?');
-    console.log('3. Работает ли интернет?');
 });
 
-// Определяем схему для Идей
+// ==================== СХЕМЫ ====================
+
+// Схема пользователей
+const userSchema = new mongoose.Schema({
+    email: {
+        type: String,
+        required: [true, 'Email обязателен'],
+        unique: true,
+        lowercase: true,
+        trim: true
+    },
+    passwordHash: {
+        type: String,
+        required: [true, 'Пароль обязателен']
+    },
+    username: {
+        type: String,
+        required: [true, 'Имя пользователя обязательно'],
+        minlength: [3, 'Имя должно быть минимум 3 символа'],
+        maxlength: [50, 'Имя должно быть максимум 50 символов']
+    },
+    role: {
+        type: String,
+        enum: ['user', 'moderator', 'content_manager', 'admin'],
+        default: 'user'
+    },
+    emailVerified: {
+        type: Boolean,
+        default: false
+    },
+    verificationCode: String,
+    verificationExpires: Date,
+    lastLogin: Date,
+    isActive: {
+        type: Boolean,
+        default: true
+    }
+}, {
+    timestamps: true
+});
+
+// Схема сессий
+const sessionSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    token: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    ipAddress: String,
+    userAgent: String,
+    expiresAt: {
+        type: Date,
+        required: true,
+        index: { expireAfterSeconds: 0 }
+    }
+}, {
+    timestamps: true
+});
+
+// Схема пригласительных кодов
+const invitationCodeSchema = new mongoose.Schema({
+    code: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    role: {
+        type: String,
+        enum: ['moderator', 'content_manager'],
+        required: true
+    },
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    usedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    usedAt: Date,
+    maxUses: {
+        type: Number,
+        default: 1
+    },
+    useCount: {
+        type: Number,
+        default: 0
+    },
+    expiresAt: Date
+}, {
+    timestamps: true
+});
+
+// Определяем схему для Идей (обновленная)
 const ideaSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -36,15 +130,29 @@ const ideaSchema = new mongoose.Schema({
         required: [true, 'Автор обязателен'],
         default: 'Аноним'
     },
+    authorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
     votes: {
         type: Number,
         default: 0
     },
     status: {
         type: String,
-        enum: ['pending', 'approved', 'rejected', 'in_progress', 'completed'],
+        enum: ['pending', 'approved', 'rejected', 'in_progress', 'completed', 'featured'],
         default: 'pending'
     },
+    isFeatured: {
+        type: Boolean,
+        default: false
+    },
+    reviewedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    reviewedAt: Date,
+    reviewNotes: String,
     createdAt: {
         type: Date,
         default: Date.now
@@ -62,6 +170,10 @@ const commentSchema = new mongoose.Schema({
         type: String,
         required: true,
         default: 'Аноним'
+    },
+    authorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     },
     text: {
         type: String,
@@ -81,8 +193,9 @@ const voteSchema = new mongoose.Schema({
         ref: 'Idea',
         required: true
     },
-    userIp: {
-        type: String,
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
         required: true
     },
     createdAt: {
@@ -91,10 +204,13 @@ const voteSchema = new mongoose.Schema({
     }
 });
 
-// Уникальный индекс для голосов (один человек - один голос)
-voteSchema.index({ ideaId: 1, userIp: 1 }, { unique: true });
+// Уникальный индекс для голосов (один пользователь - один голос)
+voteSchema.index({ ideaId: 1, userId: 1 }, { unique: true });
 
 // Создаем модели на основе схем
+const User = mongoose.model('User', userSchema);
+const Session = mongoose.model('Session', sessionSchema);
+const InvitationCode = mongoose.model('InvitationCode', invitationCodeSchema);
 const Idea = mongoose.model('Idea', ideaSchema);
 const Comment = mongoose.model('Comment', commentSchema);
 const Vote = mongoose.model('Vote', voteSchema);
@@ -102,9 +218,41 @@ const Vote = mongoose.model('Vote', voteSchema);
 class Database {
     constructor() {
         console.log('📊 Инициализация MongoDB базы данных...');
+        this.User = User;
+        this.Session = Session;
+        this.InvitationCode = InvitationCode;
         this.Idea = Idea;
         this.Comment = Comment;
         this.Vote = Vote;
+        
+        // Создаем администратора по умолчанию, если его нет
+        this.createDefaultAdmin();
+    }
+    
+    async createDefaultAdmin() {
+        try {
+            const adminEmail = process.env.ADMIN_EMAIL || 'admin@school.ru';
+            const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+            
+            const bcrypt = require('bcryptjs');
+            const hashedPassword = await bcrypt.hash(adminPassword, 10);
+            
+            const existingAdmin = await User.findOne({ email: adminEmail });
+            if (!existingAdmin) {
+                const admin = new User({
+                    email: adminEmail,
+                    passwordHash: hashedPassword,
+                    username: 'Администратор',
+                    role: 'admin',
+                    emailVerified: true
+                });
+                
+                await admin.save();
+                console.log('✅ Администратор по умолчанию создан');
+            }
+        } catch (error) {
+            console.error('❌ Ошибка создания администратора:', error);
+        }
     }
 
     // Получить все идеи с количеством голосов и комментариев
@@ -142,20 +290,22 @@ class Database {
                 },
                 {
                     $sort: {
+                        isFeatured: -1,
                         votes: -1,
                         createdAt: -1
                     }
                 }
             ]);
 
-            // Преобразуем в формат похожий на SQLite
             return ideas.map(idea => ({
                 id: idea._id,
                 title: idea.title,
                 description: idea.description,
                 author: idea.author,
+                authorId: idea.authorId,
                 votes: idea.votes,
                 status: idea.status,
+                isFeatured: idea.isFeatured,
                 created_at: idea.createdAt,
                 comment_count: idea.comment_count,
                 vote_count: idea.vote_count
@@ -167,13 +317,29 @@ class Database {
         }
     }
 
+    // Получить идеи для модерации
+    async getIdeasForModeration() {
+        try {
+            const ideas = await Idea.find({ status: 'pending' })
+                .sort({ createdAt: 1 })
+                .lean();
+            
+            return ideas;
+        } catch (error) {
+            console.error('❌ Ошибка получения идей для модерации:', error);
+            throw error;
+        }
+    }
+
     // Добавить новую идею
-    async addIdea(title, description, author) {
+    async addIdea(title, description, author, authorId = null) {
         try {
             const idea = new Idea({
                 title,
                 description,
-                author: author || 'Аноним'
+                author: author || 'Аноним',
+                authorId: authorId,
+                status: 'pending'
             });
 
             const savedIdea = await idea.save();
@@ -182,7 +348,6 @@ class Database {
         } catch (error) {
             console.error('❌ Ошибка добавления идеи:', error);
             
-            // Более понятные ошибки для пользователя
             if (error.errors?.title) {
                 throw new Error(error.errors.title.message);
             }
@@ -195,7 +360,7 @@ class Database {
     }
 
     // Проголосовать за идею
-    async voteForIdea(ideaId, userIp) {
+    async voteForIdea(ideaId, userId) {
         const session = await mongoose.startSession();
         
         try {
@@ -207,15 +372,15 @@ class Database {
                 throw new Error('Идея не найдена');
             }
 
-            // Пытаемся добавить голос (уникальность проверяется на уровне БД)
+            // Пытаемся добавить голос
             try {
                 const vote = new Vote({
                     ideaId,
-                    userIp
+                    userId
                 });
                 await vote.save({ session });
             } catch (error) {
-                if (error.code === 11000) { // Код дубликата в MongoDB
+                if (error.code === 11000) {
                     throw new Error('Вы уже голосовали за эту идею');
                 }
                 throw error;
@@ -238,7 +403,7 @@ class Database {
     }
 
     // Добавить комментарий
-    async addComment(ideaId, author, text) {
+    async addComment(ideaId, author, text, authorId = null) {
         try {
             // Проверяем существование идеи
             const idea = await Idea.findById(ideaId);
@@ -249,6 +414,7 @@ class Database {
             const comment = new Comment({
                 ideaId,
                 author: author || 'Аноним',
+                authorId: authorId,
                 text
             });
 
@@ -271,13 +437,13 @@ class Database {
         try {
             const comments = await Comment.find({ ideaId })
                 .sort({ createdAt: 1 })
-                .lean(); // Возвращаем простые объекты
+                .lean();
             
-            // Преобразуем в формат похожий на SQLite
             return comments.map(comment => ({
                 id: comment._id,
                 idea_id: comment.ideaId,
                 author: comment.author,
+                authorId: comment.authorId,
                 text: comment.text,
                 created_at: comment.createdAt
             }));
@@ -288,21 +454,77 @@ class Database {
         }
     }
 
+    // Модерация идеи
+    async moderateIdea(ideaId, reviewerId, status, reviewNotes, isFeatured = false) {
+        try {
+            const idea = await Idea.findById(ideaId);
+            if (!idea) {
+                throw new Error('Идея не найдена');
+            }
+
+            idea.status = status || idea.status;
+            idea.reviewedBy = reviewerId;
+            idea.reviewedAt = new Date();
+            idea.reviewNotes = reviewNotes || idea.reviewNotes;
+            idea.isFeatured = isFeatured !== undefined ? isFeatured : idea.isFeatured;
+
+            await idea.save();
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Ошибка модерации идеи:', error);
+            throw error;
+        }
+    }
+
+    // Удалить идею
+    async deleteIdea(ideaId) {
+        try {
+            // Удаляем идею и все связанные комментарии и голоса
+            const session = await mongoose.startSession();
+            session.startTransaction();
+
+            await Idea.findByIdAndDelete(ideaId).session(session);
+            await Comment.deleteMany({ ideaId: ideaId }).session(session);
+            await Vote.deleteMany({ ideaId: ideaId }).session(session);
+
+            await session.commitTransaction();
+            session.endSession();
+
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Ошибка удаления идеи:', error);
+            throw error;
+        }
+    }
+
+    // Удалить комментарий
+    async deleteComment(commentId) {
+        try {
+            await Comment.findByIdAndDelete(commentId);
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Ошибка удаления комментария:', error);
+            throw error;
+        }
+    }
+
     // Получить статистику
     async getStats() {
         try {
             const ideasCount = await Idea.countDocuments();
             const commentsCount = await Comment.countDocuments();
             const votesCount = await Vote.countDocuments();
+            const usersCount = await User.countDocuments();
             
             return {
                 ideas: ideasCount,
                 comments: commentsCount,
-                votes: votesCount
+                votes: votesCount,
+                users: usersCount
             };
         } catch (error) {
             console.error('❌ Ошибка получения статистики:', error);
-            return { ideas: 0, comments: 0, votes: 0 };
+            return { ideas: 0, comments: 0, votes: 0, users: 0 };
         }
     }
 
@@ -322,9 +544,12 @@ class Database {
             throw new Error('Очистка БД разрешена только в режиме разработки');
         }
         
+        await User.deleteMany({});
         await Idea.deleteMany({});
         await Comment.deleteMany({});
         await Vote.deleteMany({});
+        await InvitationCode.deleteMany({});
+        await Session.deleteMany({});
         
         console.log('🗑️ База данных очищена');
         return { success: true };
