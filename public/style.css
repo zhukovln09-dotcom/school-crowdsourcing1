@@ -115,7 +115,7 @@ form input:focus, form textarea:focus {
 
 .idea-title {
     font-size: 1.3rem;
-    color: #000000;
+    color: #424242;
     margin-bottom: 5px;
 }
 
@@ -869,4 +869,5 @@ footer {
     gap: 5px;
     margin-top: 10px;
 }
+
 
