@@ -7,7 +7,7 @@ const db = require('./database-mongo.js'); // Изменили импорт!
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+
 app.use(cors());
 app.use(express.json());
 
@@ -54,8 +54,6 @@ app.get('/api/stats', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
-// API Routes
 
 // Получить все идеи
 app.get('/api/ideas', async (req, res) => {
@@ -232,3 +230,4 @@ app.listen(PORT, () => {
     console.log(`🌐 Сайт: http://localhost:${PORT}`);
     console.log(`📊 MongoDB: ${process.env.MONGODB_URI ? 'Настроен' : 'Используется локальная строка'}`);
 });
+
