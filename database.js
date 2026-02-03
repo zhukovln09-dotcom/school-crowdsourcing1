@@ -18,8 +18,6 @@ class Database {
         // Добавляем в initDatabase():
         async initDatabase() {
             try {
-                // Существующие таблицы...
-        
                 // Таблица пользователей
                 await this.pool.query(`
                     CREATE TABLE IF NOT EXISTS users (
@@ -194,4 +192,5 @@ class Database {
 }
 
 module.exports = new Database();
+
 
