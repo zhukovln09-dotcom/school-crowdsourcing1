@@ -6,7 +6,7 @@ const db = require('./database-mongo.js'); // Изменили импорт!
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
+const newsRouter = require('./server-news');
 
 app.use(cors());
 app.use(express.json());
@@ -230,5 +230,8 @@ app.listen(PORT, () => {
     console.log(`🌐 Сайт: http://localhost:${PORT}`);
     console.log(`📊 MongoDB: ${process.env.MONGODB_URI ? 'Настроен' : 'Используется локальная строка'}`);
 });
+
+app.use(newsRouter);
+
 
 
