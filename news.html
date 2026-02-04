@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новости школы(тест) - Вместе</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Дополнительные стили для страницы новостей */
+        .news-page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        
+        .page-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .page-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .news-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .filter-btn.active {
+            background: #3498db;
+            color: white;
+        }
+        
+        .filter-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .filter-btn.active:hover {
+            background: #2980b9;
+        }
+        
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .news-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .news-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+        
+        .news-image {
+            height: 200px;
+            overflow: hidden;
+        }
+        
+        .news-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+        
+        .news-card:hover .news-image img {
+            transform: scale(1.05);
+        }
+        
+        .news-content {
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .news-category {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #3498db;
+            color: white;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .news-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            line-height: 1.4;
+        }
+        
+        .news-excerpt {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            flex-grow: 1;
+        }
+        
+        .news-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            font-size: 0.9rem;
+            color: #888;
+        }
+        
+        .news-date {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .news-source {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .loading-news {
+            text-align: center;
+            padding: 60px 20px;
+            grid-column: 1 / -1;
+        }
+        
+        .no-news {
+            text-align: center;
+            padding: 60px 20px;
+            grid-column: 1 / -1;
+            color: #666;
+        }
+        
+        .news-count {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 20px;
+            padding-left: 5px;
+        }
+        
+        .refresh-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #3498db;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        
+        .refresh-btn:hover {
+            background: #2980b9;
+            transform: scale(1.1);
+        }
+        
+        .back-to-main {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: #2c3e50;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            text-decoration: none;
+        }
+        
+        .back-to-main:hover {
+            background: #1a252f;
+            transform: scale(1.1);
+        }
+        
+        @media (max-width: 768px) {
+            .news-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .page-header h1 {
+                font-size: 2rem;
+            }
+            
+            .news-filters {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="news-page">
+        <header class="page-header">
+            <h1><i class="fas fa-newspaper"></i> Новости школы</h1>
+            <p>Самые свежие новости и события из жизни школы №654</p>
+        </header>
+        
+        <div class="news-filters">
+            <button class="filter-btn active" data-filter="all">Все новости</button>
+            <button class="filter-btn" data-filter="event">Мероприятия</button>
+            <button class="filter-btn" data-filter="sport">Спорт</button>
+            <button class="filter-btn" data-filter="study">Учеба</button>
+            <button class="filter-btn" data-filter="other">Другое</button>
+        </div>
+        
+        <div class="news-count" id="newsCount">Загружаем новости...</div>
+        
+        <div class="news-grid" id="newsGrid">
+            <div class="loading-news">
+                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                <p style="margin-top: 15px;">Загружаем новости с сайта школы...</p>
+                <p style="font-size: 0.9rem; color: #888; margin-top: 10px;">
+                    Это может занять несколько секунд
+                </p>
+            </div>
+        </div>
+        
+        <a href="index.html" class="back-to-main" title="На главную">
+            <i class="fas fa-home"></i>
+        </a>
+        
+        <button class="refresh-btn" id="refreshNews" title="Обновить новости">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+    
+    <script src="news-parser.js"></script>
+</body>
+</html>
