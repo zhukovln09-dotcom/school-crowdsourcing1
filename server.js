@@ -13,40 +13,6 @@ app.use(express.json());
 // Статические файлы
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Маршруты для страниц
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// указываем маршрут для news.html
-app.get('/news', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'news.html'));
-});
-
-app.get('/news.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'news.html'));
-});
-
-// API для парсинга новостей
-app.get('/api/news', async (req, res) => {
-    try {
-        console.log('📰 Запрос новостей...');
-        
-        // Пытаемся спарсить с сайта школы
-        const news = await parseSchoolNews();
-        
-        res.json({
-            success: true,
-            news: news,
-            count: news.length,
-            source: 'Школа №654',
-            timestamp: new Date().toISOString()
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка парсинга новостей:', error);
-}
-
 
     
 // Главная страница
@@ -265,6 +231,7 @@ app.listen(PORT, () => {
     console.log(`🌐 Сайт: http://localhost:${PORT}`);
     console.log(`📊 MongoDB: ${process.env.MONGODB_URI ? 'Настроен' : 'Используется локальная строка'}`);
 });
+
 
 
 
