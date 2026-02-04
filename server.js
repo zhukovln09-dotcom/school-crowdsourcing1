@@ -6,7 +6,7 @@ const db = require('./database-mongo.js'); // Изменили импорт!
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const newsRouter = require('./server-news');
+const newsRouter = require('server-news');
 
 app.use(cors());
 app.use(express.json());
@@ -232,6 +232,7 @@ app.listen(PORT, () => {
 });
 
 app.use(newsRouter);
+
 
 
 
