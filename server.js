@@ -3,9 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const db = require('./database-mongo.js'); // Изменили импорт!
-const fs = require('fs');
-const axios = require('axios');
-const cheerio = require('cheerio');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,104 +47,7 @@ app.get('/api/news', async (req, res) => {
         console.error('❌ Ошибка парсинга новостей:', error);
 }
 
-async function parseSchoolNews() {
-    try {
-        const url = 'https://sch654.mskobr.ru/novosti';
-        
-        const response = await axios.get(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-                'Referer': 'https://www.google.com/'
-            },
-            timeout: 10000
-        });
-        
-        const $ = cheerio.load(response.data);
-        const newsItems = [];
-        
-        // Пробуем разные селекторы (адаптируйте под структуру сайта)
-        const selectors = [
-            '.news-item',
-            '.news-list > div',
-            'article',
-            '.item',
-            '.post',
-            '.novosti'
-        ];
-        
-        let foundElements = [];
-        
-        for (const selector of selectors) {
-            const elements = $(selector);
-            if (elements.length > 0) {
-                console.log(`Нашли элементы по селектору: ${selector}`);
-                foundElements = elements;
-                break;
-            }
-        }
-        
-        // Если не нашли по селекторам, ищем любые блоки с контентом
-        if (foundElements.length === 0) {
-            foundElements = $('div').filter((i, el) => {
-                return $(el).find('h2, h3, h4').length > 0;
-            });
-        }
-        
-        // Парсим найденные элементы
-        foundElements.each((index, element) => {
-            if (index < 12) { // Ограничиваем количество
-                const $el = $(element);
-                
-                const title = $el.find('h2, h3, h4').first().text().trim() || 
-                             $el.find('[class*="title"]').first().text().trim();
-                
-                if (title && title.length > 5) {
-                    const link = $el.find('a').first().attr('href');
-                    const image = $el.find('img').first().attr('src');
-                    const excerpt = $el.find('p').first().text().trim().substring(0, 150) + '...';
-                    const date = $el.find('[class*="date"], time').first().text().trim();
-                    
-                    // Определяем категорию
-                    let category = 'school';
-                    const lowerTitle = title.toLowerCase();
-                    if (lowerTitle.includes('спорт') || lowerTitle.includes('соревн')) {
-                        category = 'sport';
-                    } else if (lowerTitle.includes('олимпиад') || lowerTitle.includes('конкурс')) {
-                        category = 'study';
-                    } else if (lowerTitle.includes('мероприят') || lowerTitle.includes('фестиваль')) {
-                        category = 'event';
-                    }
-                    
-                    newsItems.push({
-                        id: Date.now() + index,
-                        title: title,
-                        excerpt: excerpt || 'Читать подробнее на сайте школы...',
-                        image: image ? `https://sch654.mskobr.ru${image}` : getRandomImage(),
-                        date: date || getRandomDate(),
-                        category: category,
-                        source: 'Школа №654',
-                        sourceUrl: link ? `https://sch654.mskobr.ru${link}` : url
-                    });
-                }
-            }
-        });
-        
-        // Если ничего не нашли - возвращаем демо-новости
-        if (newsItems.length === 0) {
-            console.log('Не удалось спарсить новости, возвращаем демо');
-            return getDemoNews();
-        }
-        
-        console.log(`✅ Спарсено ${newsItems.length} новостей`);
-        return newsItems;
-        
-    } catch (error) {
-        console.error('Ошибка парсинга:', error);
-        throw error;
-    }
-}
+
     
 // Главная страница
 app.get('/', (req, res) => {
@@ -365,6 +265,7 @@ app.listen(PORT, () => {
     console.log(`🌐 Сайт: http://localhost:${PORT}`);
     console.log(`📊 MongoDB: ${process.env.MONGODB_URI ? 'Настроен' : 'Используется локальная строка'}`);
 });
+
 
 
 
