@@ -232,6 +232,56 @@ app.listen(PORT, () => {
     console.log(`📊 MongoDB: ${process.env.MONGODB_URI ? 'Настроен' : 'Используется локальная строка'}`);
 });
 
+// В server.js добавьте:
+const fs = require('fs');
+const path = require('path');
+
+// Маршрут для скачивания всей базы в JSON
+app.get('/api/export/database', async (req, res) => {
+    try {
+        // Получаем все данные
+        const ideas = await db.getAllIdeas?.() || [];
+        const comments = await db.getComments?.() || [];
+        const votes = await db.getVotes?.() || [];
+        
+        // Структура для экспорта
+        const exportData = {
+            export_date: new Date().toISOString(),
+            school: "Школьный Краудсорсинг",
+            total_ideas: ideas.length,
+            total_comments: comments.length,
+            total_votes: votes.length,
+            data: {
+                ideas: ideas,
+                comments: comments,
+                votes: votes
+            }
+        };
+        
+        // Отправляем как JSON файл
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename="school-database-backup.json"');
+        res.json(exportData);
+        
+    } catch (error) {
+        console.error('Ошибка экспорта:', error);
+        res.status(500).json({ error: 'Ошибка экспорта базы данных' });
+    }
+});
+
+// Маршрут для скачивания только идей
+app.get('/api/export/ideas', async (req, res) => {
+    try {
+        const ideas = await db.getAllIdeas?.() || [];
+        
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename="school-ideas.json"');
+        res.json(ideas);
+        
+    } catch (error) {
+        res.status(500).json({ error: 'Ошибка экспорта' });
+    }
+});
 
 
 
