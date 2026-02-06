@@ -6,17 +6,13 @@ const MONGODB_URI = process.env.MONGODB_URI ||
     'mongodb+srv://Leonid:yzF-UgN-teN-TQ8@cluster0.52cmiku.mongodb.net/?appName=Cluster0&serverSelectionTimeoutMS=5000&socketTimeoutMS=45000';
 
 // Подключение к MongoDB
-mongoose.connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => {
-    console.log('✅ Успешно подключено к MongoDB Atlas');
-}).catch((error) => {
-    console.error('❌ Ошибка подключения к MongoDB:', error.message);
-    console.log('💡 Проверьте:');
-    console.log('1. Правильный ли пароль в строке подключения?');
-    console.log('2. Добавили ли IP 0.0.0.0/0 в Network Access?');
-    console.log('3. Работает ли интернет?');
+mongoose.connect(MONGODB_URI)
+    .then(() => {
+        console.log('✅ Успешно подключено к MongoDB Atlas');
+    })
+    .catch((error) => {
+        console.error('❌ Ошибка подключения к MongoDB:', error.message);
+    });
 });
 
 // Определяем схему для Идей
