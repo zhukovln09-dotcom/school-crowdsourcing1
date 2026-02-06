@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 // Строка подключения к MongoDB Atlas
 const MONGODB_URI = process.env.MONGODB_URI || 
-    'mongodb+srv://Leonid:yzF-UgN-teN-TQ8@cluster0.52cmiku.mongodb.net/?appName=Cluster0&serverSelectionTimeoutMS=5000&socketTimeoutMS=45000';
+    'mongodb+srv://Leonid:im4xzag3mnC605Ef@cluster0.52cmiku.mongodb.net/?appName=Cluster0';
 
 // Подключение к MongoDB
 mongoose.connect(MONGODB_URI)
