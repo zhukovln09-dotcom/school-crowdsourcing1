@@ -1,229 +1,125 @@
-// server.js - версия для MongoDB
+// server-minimal.js - минимальный рабочий сервер
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const db = require('./database-mongo.js'); // Изменили импорт!
+require('dotenv').config(); // Для загрузки .env файлов
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 
-// Статические файлы
-app.use(express.static(path.join(__dirname, 'public')));
+// Простой маршрут для проверки
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'OK',
+        message: 'Сервер работает',
+        timestamp: new Date().toISOString(),
+        node_version: process.version
+    });
+});
 
-
-    
 // Главная страница
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Получить IP пользователя
-const getClientIp = (req) => {
-    return req.headers['x-forwarded-for']?.split(',')[0] || 
-           req.ip || 
-           req.connection.remoteAddress;
-};
-
-// Маршрут для экспорта данных
-app.get('/api/export', (req, res) => {
-    res.json(db.exportData());
+// Простой API (без базы данных)
+app.get('/api/ideas', (req, res) => {
+    const ideas = [
+        {
+            id: 1,
+            title: 'Добро пожаловать на сайт!',
+            description: 'Это демонстрационная версия сайта. База данных настраивается.',
+            author: 'Администрация',
+            votes: 10,
+            status: 'pending',
+            created_at: new Date().toISOString(),
+            comment_count: 3,
+            vote_count: 10
+        },
+        {
+            id: 2,
+            title: 'Как пользоваться сайтом',
+            description: '1. Предложите свою идею\n2. Голосуйте за понравившиеся\n3. Обсуждайте в комментариях',
+            author: 'Система',
+            votes: 5,
+            status: 'pending',
+            created_at: new Date().toISOString(),
+            comment_count: 2,
+            vote_count: 5
+        }
+    ];
+    res.json(ideas);
 });
 
-// Маршрут для импорта данных (только POST)
-app.post('/api/import', (req, res) => {
-    if (req.body.data) {
-        const result = db.importData(req.body.data);
-        res.json(result);
-    } else {
-        res.status(400).json({ error: 'Нет данных для импорта' });
-    }
-});
-
-// Проверка здоровья API
-app.get('/api/health', async (req, res) => {
-    try {
-        const connectionStatus = await db.testConnection();
-        
-        res.json({ 
-            status: 'healthy',
-            database: connectionStatus.connected ? 'connected' : 'disconnected',
-            timestamp: new Date().toISOString(),
-            mongo: connectionStatus
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            status: 'unhealthy',
-            error: error.message 
-        });
-    }
-});
-
-// Получить статистику
-app.get('/api/stats', async (req, res) => {
-    try {
-        const stats = await db.getStats();
-        res.json(stats);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Получить все идеи
-app.get('/api/ideas', async (req, res) => {
-    try {
-        const ideas = await db.getAllIdeas();
-        res.json(ideas);
-    } catch (error) {
-        console.error('Ошибка загрузки идей:', error);
-        res.status(500).json({ error: 'Ошибка загрузки идей. Попробуйте позже.' });
-    }
-});
-
-// Добавить новую идею
-app.post('/api/ideas', async (req, res) => {
-    try {
-        const { title, description, author } = req.body;
-        
-        // Валидация
-        if (!title || !description) {
-            return res.status(400).json({ 
-                error: 'Заполните все поля',
-                details: 'Нужны название и описание идеи'
-            });
-        }
-        
-        if (title.length < 3) {
-            return res.status(400).json({ 
-                error: 'Название слишком короткое',
-                details: 'Минимум 3 символа'
-            });
-        }
-        
-        if (description.length < 10) {
-            return res.status(400).json({ 
-                error: 'Описание слишком короткое',
-                details: 'Минимум 10 символов'
-            });
-        }
-        
-        const result = await db.addIdea(title, description, author);
-        
-        res.json({ 
-            success: true, 
-            message: 'Идея успешно добавлена!',
-            id: result.id
-        });
-        
-    } catch (error) {
-        console.error('Ошибка добавления идеи:', error);
-        
-        // Более понятные ошибки для пользователя
-        if (error.message.includes('обязательно') || 
-            error.message.includes('должно быть')) {
-            res.status(400).json({ error: error.message });
-        } else {
-            res.status(500).json({ error: 'Не удалось добавить идею' });
-        }
-    }
-});
-
-// Проголосовать за идею
-app.post('/api/ideas/:id/vote', async (req, res) => {
-    try {
-        const ideaId = req.params.id;
-        const userIp = getClientIp(req);
-        
-        if (!ideaId) {
-            return res.status(400).json({ error: 'Не указан ID идеи' });
-        }
-        
-        await db.voteForIdea(ideaId, userIp);
-        
-        res.json({ 
-            success: true,
-            message: 'Ваш голос учтен!'
-        });
-        
-    } catch (error) {
-        console.error('Ошибка голосования:', error);
-        
-        if (error.message.includes('уже голосовали')) {
-            res.status(400).json({ error: error.message });
-        } else if (error.message.includes('не найдена')) {
-            res.status(404).json({ error: 'Идея не найдена' });
-        } else {
-            res.status(500).json({ error: 'Ошибка голосования' });
-        }
-    }
-});
-
-// Добавить комментарий
-app.post('/api/ideas/:id/comments', async (req, res) => {
-    try {
-        const ideaId = req.params.id;
-        const { author, text } = req.body;
-        
-        if (!text) {
-            return res.status(400).json({ 
-                error: 'Введите текст комментария'
-            });
-        }
-        
-        if (text.length < 2) {
-            return res.status(400).json({ 
-                error: 'Комментарий слишком короткий'
-            });
-        }
-        
-        const result = await db.addComment(ideaId, author, text);
-        
-        res.json({ 
-            success: true,
-            message: 'Комментарий добавлен!',
-            id: result.id
-        });
-        
-    } catch (error) {
-        console.error('Ошибка добавления комментария:', error);
-        
-        if (error.message.includes('не найдена')) {
-            res.status(404).json({ error: 'Идея не найдена' });
-        } else {
-            res.status(500).json({ error: 'Не удалось добавить комментарий' });
-        }
-    }
-});
-
-// Получить комментарии для идеи
-app.get('/api/ideas/:id/comments', async (req, res) => {
-    try {
-        const ideaId = req.params.id;
-        const comments = await db.getComments(ideaId);
-        
-        res.json(comments);
-        
-    } catch (error) {
-        console.error('Ошибка загрузки комментариев:', error);
-        res.status(500).json({ error: 'Не удалось загрузить комментарии' });
-    }
-});
-
-// Очистить базу данных (ТОЛЬКО ДЛЯ ТЕСТИРОВАНИЯ!)
-app.delete('/api/admin/clear', async (req, res) => {
-    // Защита: только в режиме разработки
-    if (process.env.NODE_ENV !== 'development') {
-        return res.status(403).json({ error: 'Доступ запрещен' });
+// Простая форма для добавления идеи (сохраняет в памяти)
+let tempIdeas = [];
+app.post('/api/ideas', (req, res) => {
+    const { title, description, author } = req.body;
+    
+    if (!title || !description) {
+        return res.status(400).json({ error: 'Заполните все поля' });
     }
     
-    try {
-        const result = await db.clearDatabase();
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    const newIdea = {
+        id: Date.now(),
+        title,
+        description,
+        author: author || 'Аноним',
+        votes: 0,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        comment_count: 0,
+        vote_count: 0
+    };
+    
+    tempIdeas.push(newIdea);
+    res.json({ success: true, id: newIdea.id });
+});
+
+// Голосование
+app.post('/api/ideas/:id/vote', (req, res) => {
+    const ideaId = parseInt(req.params.id);
+    const idea = tempIdeas.find(i => i.id === ideaId);
+    
+    if (idea) {
+        idea.votes += 1;
+        idea.vote_count += 1;
+        res.json({ success: true });
+    } else {
+        res.status(404).json({ error: 'Идея не найдена' });
     }
+});
+
+// Комментарии
+app.get('/api/ideas/:id/comments', (req, res) => {
+    res.json([
+        {
+            id: 1,
+            idea_id: parseInt(req.params.id),
+            author: 'Тестовый пользователь',
+            text: 'Это тестовый комментарий',
+            created_at: new Date().toISOString()
+        }
+    ]);
+});
+
+app.post('/api/ideas/:id/comments', (req, res) => {
+    const { author, text } = req.body;
+    
+    if (!text) {
+        return res.status(400).json({ error: 'Введите текст комментария' });
+    }
+    
+    res.json({ 
+        success: true, 
+        id: Date.now(),
+        message: 'Комментарий добавлен (демо-режим)'
+    });
 });
 
 // Обработка 404
@@ -232,11 +128,11 @@ app.use((req, res) => {
 });
 
 // Обработка ошибок
-app.use((error, req, res, next) => {
-    console.error('Глобальная ошибка:', error);
+app.use((err, req, res, next) => {
+    console.error('Ошибка сервера:', err);
     res.status(500).json({ 
         error: 'Внутренняя ошибка сервера',
-        message: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
 });
 
@@ -244,6 +140,6 @@ app.use((error, req, res, next) => {
 app.listen(PORT, () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
     console.log(`🌐 Сайт: http://localhost:${PORT}`);
-    console.log(`📊 MongoDB: ${process.env.MONGODB_URI ? 'Настроен' : 'Используется локальная строка'}`);
+    console.log(`🔧 Режим: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📊 Временных идей: ${tempIdeas.length}`);
 });
-
