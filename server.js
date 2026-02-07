@@ -27,6 +27,21 @@ const getClientIp = (req) => {
            req.connection.remoteAddress;
 };
 
+// Маршрут для экспорта данных
+app.get('/api/export', (req, res) => {
+    res.json(db.exportData());
+});
+
+// Маршрут для импорта данных (только POST)
+app.post('/api/import', (req, res) => {
+    if (req.body.data) {
+        const result = db.importData(req.body.data);
+        res.json(result);
+    } else {
+        res.status(400).json({ error: 'Нет данных для импорта' });
+    }
+});
+
 // Проверка здоровья API
 app.get('/api/health', async (req, res) => {
     try {
@@ -231,3 +246,4 @@ app.listen(PORT, () => {
     console.log(`🌐 Сайт: http://localhost:${PORT}`);
     console.log(`📊 MongoDB: ${process.env.MONGODB_URI ? 'Настроен' : 'Используется локальная строка'}`);
 });
+
