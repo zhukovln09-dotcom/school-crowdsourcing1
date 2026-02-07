@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "mongo-dev": "mongodb+srv://Leonid:yzF-UgN-teN-TQ8@cluster0.52cmiku.mongodb.net/?appName=Cluster0&serverSelectionTimeoutMS=5000&socketTimeoutMS=45000",
+    "mongo-dev": "mongodb+srv://Leonid:kh6-mFh-f3G-Ffu@cluster0.52cmiku.mongodb.net/?appName=Cluster0",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
@@ -24,6 +24,7 @@
   "author": "Школьный проект",
   "license": "MIT"
 }
+
 
 
 
