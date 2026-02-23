@@ -1,16 +1,12 @@
-// server.js для MongoDB Atlas
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
-require('dotenv').config(); // Для загрузки переменных окружения
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ==================== ПОДКЛЮЧЕНИЕ К MONGODB ATLAS ====================
-
-// Строка подключения из переменных окружения или локальная
 const MONGODB_URI = process.env.MONGODB_URI || 
     'mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/school?retryWrites=true&w=majority';
 
@@ -19,8 +15,8 @@ console.log('🔄 Подключаюсь к MongoDB Atlas...');
 mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5000, // 5 секунд на подключение
-    socketTimeoutMS: 45000, // 45 секунд таймаут
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
 })
 .then(() => {
     console.log('✅ Успешно подключено к MongoDB Atlas!');
@@ -33,9 +29,6 @@ mongoose.connect(MONGODB_URI, {
     console.log('3. Работает ли интернет?');
 });
 
-// ==================== СХЕМЫ MONGODB ====================
-
-// Схема для идей
 const ideaSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -70,10 +63,9 @@ const ideaSchema = new mongoose.Schema({
         default: Date.now
     }
 }, {
-    timestamps: true // Добавляет createdAt и updatedAt автоматически
+    timestamps: true
 });
 
-// Схема для комментариев
 const commentSchema = new mongoose.Schema({
     ideaId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -100,7 +92,6 @@ const commentSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Схема для голосов
 const voteSchema = new mongoose.Schema({
     ideaId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -119,35 +110,26 @@ const voteSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Уникальный индекс для голосов (один человек - один голос)
 voteSchema.index({ ideaId: 1, userIp: 1 }, { unique: true });
 
-// Модели
 const Idea = mongoose.model('Idea', ideaSchema);
 const Comment = mongoose.model('Comment', commentSchema);
 const Vote = mongoose.model('Vote', voteSchema);
-
-// ==================== MIDDLEWARE ====================
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Логирование запросов
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
     next();
 });
-
-// ==================== ПОЛУЧЕНИЕ IP ПОЛЬЗОВАТЕЛЯ ====================
 
 const getClientIp = (req) => {
     return req.headers['x-forwarded-for']?.split(',')[0] || 
            req.ip || 
            req.connection.remoteAddress;
 };
-
-// ==================== ПРОВЕРКА ЗДОРОВЬЯ ====================
 
 app.get('/api/health', async (req, res) => {
     try {
@@ -181,9 +163,6 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
-// ==================== API ROUTES ====================
-
-// 1. ПОЛУЧИТЬ ВСЕ ИДЕИ
 app.get('/api/ideas', async (req, res) => {
     try {
         const ideas = await Idea.aggregate([
@@ -224,7 +203,6 @@ app.get('/api/ideas', async (req, res) => {
             }
         ]);
 
-        // Преобразуем в формат, который ожидает фронтенд
         const formattedIdeas = ideas.map(idea => ({
             id: idea._id,
             title: idea.title,
@@ -248,12 +226,10 @@ app.get('/api/ideas', async (req, res) => {
     }
 });
 
-// 2. ДОБАВИТЬ НОВУЮ ИДЕЮ
 app.post('/api/ideas', async (req, res) => {
     try {
         const { title, description, author } = req.body;
 
-        // Валидация
         if (!title || !description) {
             return res.status(400).json({ 
                 error: 'Все поля обязательны',
@@ -313,13 +289,11 @@ app.post('/api/ideas', async (req, res) => {
     }
 });
 
-// 3. ПРОГОЛОСОВАТЬ ЗА ИДЕЮ
 app.post('/api/ideas/:id/vote', async (req, res) => {
     try {
         const ideaId = req.params.id;
         const userIp = getClientIp(req);
 
-        // Проверяем существование идеи
         const idea = await Idea.findById(ideaId);
         if (!idea) {
             return res.status(404).json({ 
@@ -328,7 +302,6 @@ app.post('/api/ideas/:id/vote', async (req, res) => {
             });
         }
 
-        // Проверяем, не голосовал ли уже пользователь
         const existingVote = await Vote.findOne({ 
             ideaId: ideaId, 
             userIp: userIp 
@@ -341,12 +314,10 @@ app.post('/api/ideas/:id/vote', async (req, res) => {
             });
         }
 
-        // Начинаем транзакцию
         const session = await mongoose.startSession();
         session.startTransaction();
 
         try {
-            // Создаем запись о голосовании
             const vote = new Vote({
                 ideaId: ideaId,
                 userIp: userIp
@@ -354,11 +325,9 @@ app.post('/api/ideas/:id/vote', async (req, res) => {
 
             await vote.save({ session });
 
-            // Увеличиваем счетчик голосов у идеи
             idea.votes += 1;
             await idea.save({ session });
 
-            // Фиксируем транзакцию
             await session.commitTransaction();
             session.endSession();
 
@@ -369,7 +338,6 @@ app.post('/api/ideas/:id/vote', async (req, res) => {
             });
 
         } catch (transactionError) {
-            // Откатываем транзакцию при ошибке
             await session.abortTransaction();
             session.endSession();
             throw transactionError;
@@ -378,7 +346,7 @@ app.post('/api/ideas/:id/vote', async (req, res) => {
     } catch (error) {
         console.error('Ошибка голосования:', error);
         
-        if (error.code === 11000) { // Код дубликата в MongoDB
+        if (error.code === 11000) {
             return res.status(400).json({ 
                 error: 'Вы уже голосовали за эту идею' 
             });
@@ -398,13 +366,11 @@ app.post('/api/ideas/:id/vote', async (req, res) => {
     }
 });
 
-// 4. ДОБАВИТЬ КОММЕНТАРИЙ
 app.post('/api/ideas/:id/comments', async (req, res) => {
     try {
         const ideaId = req.params.id;
         const { author, text } = req.body;
 
-        // Проверяем существование идеи
         const idea = await Idea.findById(ideaId);
         if (!idea) {
             return res.status(404).json({ 
@@ -413,7 +379,6 @@ app.post('/api/ideas/:id/comments', async (req, res) => {
             });
         }
 
-        // Валидация
         if (!text) {
             return res.status(400).json({ 
                 error: 'Текст комментария обязателен' 
@@ -472,12 +437,10 @@ app.post('/api/ideas/:id/comments', async (req, res) => {
     }
 });
 
-// 5. ПОЛУЧИТЬ КОММЕНТАРИИ ДЛЯ ИДЕИ
 app.get('/api/ideas/:id/comments', async (req, res) => {
     try {
         const ideaId = req.params.id;
 
-        // Проверяем существование идеи
         const idea = await Idea.findById(ideaId);
         if (!idea) {
             return res.status(404).json({ 
@@ -491,7 +454,6 @@ app.get('/api/ideas/:id/comments', async (req, res) => {
             .select('-__v')
             .lean();
 
-        // Форматируем для фронтенда
         const formattedComments = comments.map(comment => ({
             id: comment._id,
             idea_id: comment.ideaId,
@@ -519,21 +481,18 @@ app.get('/api/ideas/:id/comments', async (req, res) => {
     }
 });
 
-// 6. ПОЛУЧИТЬ СТАТИСТИКУ
 app.get('/api/stats', async (req, res) => {
     try {
         const totalIdeas = await Idea.countDocuments();
         const totalComments = await Comment.countDocuments();
         const totalVotes = await Vote.countDocuments();
         
-        // Самые популярные идеи
         const popularIdeas = await Idea.find()
             .sort({ votes: -1 })
             .limit(5)
             .select('title votes author')
             .lean();
         
-        // Последние идеи
         const recentIdeas = await Idea.find()
             .sort({ createdAt: -1 })
             .limit(5)
@@ -568,7 +527,6 @@ app.get('/api/stats', async (req, res) => {
     }
 });
 
-// 7. ОБНОВИТЬ СТАТУС ИДЕИ (для админов)
 app.patch('/api/ideas/:id/status', async (req, res) => {
     try {
         const ideaId = req.params.id;
@@ -614,17 +572,14 @@ app.patch('/api/ideas/:id/status', async (req, res) => {
     }
 });
 
-// 8. УДАЛИТЬ ИДЕЮ (для админов)
 app.delete('/api/ideas/:id', async (req, res) => {
     try {
         const ideaId = req.params.id;
         
-        // Начинаем транзакцию
         const session = await mongoose.startSession();
         session.startTransaction();
 
         try {
-            // Удаляем идею
             const deletedIdea = await Idea.findByIdAndDelete(ideaId, { session });
             
             if (!deletedIdea) {
@@ -635,13 +590,10 @@ app.delete('/api/ideas/:id', async (req, res) => {
                 });
             }
 
-            // Удаляем связанные комментарии
             await Comment.deleteMany({ ideaId: ideaId }, { session });
             
-            // Удаляем связанные голоса
             await Vote.deleteMany({ ideaId: ideaId }, { session });
 
-            // Фиксируем транзакцию
             await session.commitTransaction();
             session.endSession();
 
@@ -670,21 +622,14 @@ app.delete('/api/ideas/:id', async (req, res) => {
     }
 });
 
-// ==================== СТАТИЧЕСКИЕ ФАЙЛЫ ====================
-
-// Главная страница
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Все остальные маршруты → index.html (для SPA)
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ==================== ОБРАБОТКА ОШИБОК ====================
-
-// 404 - маршрут не найден
 app.use((req, res) => {
     res.status(404).json({
         error: 'Маршрут не найден',
@@ -694,7 +639,6 @@ app.use((req, res) => {
     });
 });
 
-// Глобальный обработчик ошибок
 app.use((error, req, res, next) => {
     console.error('🔥 Глобальная ошибка:', error);
     
@@ -705,8 +649,6 @@ app.use((error, req, res, next) => {
     });
 });
 
-// ==================== ЗАПУСК СЕРВЕРА ====================
-
 const server = app.listen(PORT, () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
     console.log(`🌐 Сайт доступен по адресу: http://localhost:${PORT}`);
@@ -714,18 +656,14 @@ const server = app.listen(PORT, () => {
     console.log(`🔧 Режим: ${process.env.NODE_ENV || 'development'}`);
 });
 
-// ==================== КОРРЕКТНОЕ ЗАВЕРШЕНИЕ РАБОТЫ ====================
-
 const gracefulShutdown = async (signal) => {
     console.log(`\n⚠️  Получен сигнал ${signal}, завершаем работу...`);
     
     try {
-        // Закрываем сервер
         server.close(() => {
             console.log('✅ Сервер остановлен');
         });
         
-        // Закрываем подключение к MongoDB
         if (mongoose.connection.readyState === 1) {
             await mongoose.connection.close();
             console.log('✅ Подключение к MongoDB закрыто');
@@ -740,12 +678,10 @@ const gracefulShutdown = async (signal) => {
     }
 };
 
-// Обработка сигналов завершения
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGHUP', () => gracefulShutdown('SIGHUP'));
 
-// Обработка необработанных исключений
 process.on('uncaughtException', (error) => {
     console.error('💥 Необработанное исключение:', error);
     gracefulShutdown('UNCAUGHT_EXCEPTION');
@@ -755,3 +691,4 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('💥 Необработанный промис:', reason);
     gracefulShutdown('UNHANDLED_REJECTION');
 });
+
