@@ -1,11 +1,8 @@
-// database-mongo.js - для MongoDB Atlas
 const mongoose = require('mongoose');
 
-// Строка подключения к MongoDB Atlas
 const MONGODB_URI = process.env.MONGODB_URI || 
     'mongodb+srv://Leonid:kh6-mFh-f3G-Ffu@cluster0.52cmiku.mongodb.net/?appName=Cluster0';
 
-// Подключение к MongoDB
 mongoose.connect(MONGODB_URI)
     .then(() => {
         console.log('✅ Успешно подключено к MongoDB Atlas');
@@ -15,7 +12,6 @@ mongoose.connect(MONGODB_URI)
     });
 });
 
-// Определяем схему для Идей
 const ideaSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -47,7 +43,6 @@ const ideaSchema = new mongoose.Schema({
     }
 });
 
-// Определяем схему для Комментариев
 const commentSchema = new mongoose.Schema({
     ideaId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -70,7 +65,6 @@ const commentSchema = new mongoose.Schema({
     }
 });
 
-// Определяем схему для Голосов
 const voteSchema = new mongoose.Schema({
     ideaId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -87,10 +81,8 @@ const voteSchema = new mongoose.Schema({
     }
 });
 
-// Уникальный индекс для голосов (один человек - один голос)
 voteSchema.index({ ideaId: 1, userIp: 1 }, { unique: true });
 
-// Создаем модели на основе схем
 const Idea = mongoose.model('Idea', ideaSchema);
 const Comment = mongoose.model('Comment', commentSchema);
 const Vote = mongoose.model('Vote', voteSchema);
@@ -103,7 +95,6 @@ class Database {
         this.Vote = Vote;
     }
 
-    // Получить все идеи с количеством голосов и комментариев
     async getAllIdeas() {
         try {
             const ideas = await Idea.aggregate([
@@ -144,7 +135,6 @@ class Database {
                 }
             ]);
 
-            // Преобразуем в формат похожий на SQLite
             return ideas.map(idea => ({
                 id: idea._id,
                 title: idea.title,
@@ -163,7 +153,6 @@ class Database {
         }
     }
 
-    // Добавить новую идею
     async addIdea(title, description, author) {
         try {
             const idea = new Idea({
@@ -178,7 +167,6 @@ class Database {
         } catch (error) {
             console.error('❌ Ошибка добавления идеи:', error);
             
-            // Более понятные ошибки для пользователя
             if (error.errors?.title) {
                 throw new Error(error.errors.title.message);
             }
@@ -190,20 +178,17 @@ class Database {
         }
     }
 
-    // Проголосовать за идею
     async voteForIdea(ideaId, userIp) {
         const session = await mongoose.startSession();
         
         try {
             session.startTransaction();
 
-            // Проверяем существование идеи
             const idea = await Idea.findById(ideaId).session(session);
             if (!idea) {
                 throw new Error('Идея не найдена');
             }
 
-            // Пытаемся добавить голос (уникальность проверяется на уровне БД)
             try {
                 const vote = new Vote({
                     ideaId,
@@ -211,13 +196,12 @@ class Database {
                 });
                 await vote.save({ session });
             } catch (error) {
-                if (error.code === 11000) { // Код дубликата в MongoDB
+                if (error.code === 11000) {
                     throw new Error('Вы уже голосовали за эту идею');
                 }
                 throw error;
             }
 
-            // Увеличиваем счетчик голосов
             idea.votes += 1;
             await idea.save({ session });
 
@@ -233,10 +217,8 @@ class Database {
         }
     }
 
-    // Добавить комментарий
     async addComment(ideaId, author, text) {
         try {
-            // Проверяем существование идеи
             const idea = await Idea.findById(ideaId);
             if (!idea) {
                 throw new Error('Идея не найдена');
@@ -262,14 +244,12 @@ class Database {
         }
     }
 
-    // Получить комментарии для идеи
     async getComments(ideaId) {
         try {
             const comments = await Comment.find({ ideaId })
                 .sort({ createdAt: 1 })
-                .lean(); // Возвращаем простые объекты
-            
-            // Преобразуем в формат похожий на SQLite
+                .lean();
+
             return comments.map(comment => ({
                 id: comment._id,
                 idea_id: comment.ideaId,
@@ -284,7 +264,6 @@ class Database {
         }
     }
 
-    // Получить статистику
     async getStats() {
         try {
             const ideasCount = await Idea.countDocuments();
@@ -302,7 +281,6 @@ class Database {
         }
     }
 
-    // Тест подключения
     async testConnection() {
         try {
             await mongoose.connection.db.admin().ping();
@@ -312,7 +290,6 @@ class Database {
         }
     }
 
-    // Очистить базу данных (только для тестирования!)
     async clearDatabase() {
         if (process.env.NODE_ENV !== 'development') {
             throw new Error('Очистка БД разрешена только в режиме разработки');
@@ -327,6 +304,5 @@ class Database {
     }
 }
 
-// Экспортируем экземпляр базы данных
 const database = new Database();
 module.exports = database;
