@@ -1,5 +1,3 @@
-
-// Основной класс приложения
 class CrowdsourcingApp {
     constructor() {
         this.currentIdeaId = null;
@@ -7,14 +5,12 @@ class CrowdsourcingApp {
         console.log('🚀 Приложение инициализировано');
     }
 
-    // Инициализация при загрузке страницы
     async init() {
         await this.loadIdeas();
         this.setupEventListeners();
         this.setupGlobalFunctions();
     }
 
-    // Загрузка всех идей
     async loadIdeas() {
         try {
             console.log('📥 Загружаем идеи...');
@@ -34,7 +30,6 @@ class CrowdsourcingApp {
         }
     }
 
-    // Отображение идей
     displayIdeas(ideas) {
         const container = document.getElementById('ideasContainer');
         
@@ -50,7 +45,6 @@ class CrowdsourcingApp {
         }
 
         container.innerHTML = ideas.map(idea => {
-            // Экранируем текст для безопасности
             const safeTitle = this.escapeHtml(idea.title || 'Без названия');
             const safeAuthor = this.escapeHtml(idea.author || 'Аноним');
             const safeDescription = this.escapeHtml(idea.description || '');
@@ -93,14 +87,10 @@ class CrowdsourcingApp {
                 </div>
             `;
         }).join('');
-        
-        // Добавляем обработчики для новых кнопок
         this.attachEventListeners();
     }
 
-    // Привязка обработчиков событий к кнопкам
     attachEventListeners() {
-        // Кнопки "Поддержать"
         document.querySelectorAll('.vote-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const ideaId = e.currentTarget.getAttribute('data-idea-id');
@@ -109,8 +99,7 @@ class CrowdsourcingApp {
                 }
             });
         });
-        
-        // Кнопки "Обсудить"
+
         document.querySelectorAll('.comment-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const ideaId = e.currentTarget.getAttribute('data-idea-id');
@@ -122,9 +111,7 @@ class CrowdsourcingApp {
         });
     }
 
-    // Настройка обработчиков форм
     setupEventListeners() {
-        // Форма добавления идеи
         const ideaForm = document.getElementById('ideaForm');
         if (ideaForm) {
             ideaForm.addEventListener('submit', (e) => {
@@ -133,7 +120,6 @@ class CrowdsourcingApp {
             });
         }
         
-        // Форма комментария
         const commentForm = document.getElementById('commentForm');
         if (commentForm) {
             commentForm.addEventListener('submit', (e) => {
@@ -142,15 +128,12 @@ class CrowdsourcingApp {
             });
         }
         
-        // Закрытие модального окна
         const closeBtn = document.querySelector('.close');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
                 document.getElementById('commentModal').style.display = 'none';
             });
         }
-        
-        // Закрытие по клику вне окна
         window.addEventListener('click', (e) => {
             const modal = document.getElementById('commentModal');
             if (e.target === modal) {
@@ -159,7 +142,6 @@ class CrowdsourcingApp {
         });
     }
 
-    // Создание глобальных функций для вызова из HTML
     setupGlobalFunctions() {
         window.voteForIdeaGlobal = (ideaId) => {
             const button = document.querySelector(`.vote-btn[data-idea-id="${ideaId}"]`);
@@ -173,8 +155,6 @@ class CrowdsourcingApp {
         };
     }
 
- 
-    // Голосование за идею
     async voteForIdea(ideaId, buttonElement) {
         if (!confirm('Вы уверены, что хотите поддержать эту идею?')) {
             return;
@@ -182,7 +162,6 @@ class CrowdsourcingApp {
         
         console.log(`👍 Голосую за идею ${ideaId}`);
         
-        // Блокируем кнопку во время запроса
         const originalHTML = buttonElement.innerHTML;
         buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Голосую...';
         buttonElement.disabled = true;
@@ -203,17 +182,14 @@ class CrowdsourcingApp {
             const result = await response.json();
             
             if (result.success) {
-                // Обновляем счетчик голосов на странице
                 const voteCountElement = document.getElementById(`vote-count-${ideaId}`);
                 if (voteCountElement) {
                     const currentVotes = parseInt(voteCountElement.textContent) || 0;
                     voteCountElement.textContent = currentVotes + 1;
                 }
                 
-                // Показываем уведомление
                 this.showMessage('Спасибо за ваш голос! 💙', 'success');
                 
-                // Перезагружаем список идей через 1 секунду
                 setTimeout(() => this.loadIdeas(), 1000);
                 
             } else {
@@ -223,7 +199,6 @@ class CrowdsourcingApp {
         } catch (error) {
             console.error('❌ Ошибка голосования:', error);
             
-            // Показываем понятную ошибку
             if (error.message.includes('уже голосовали')) {
                 this.showError('Вы уже голосовали за эту идею!');
             } else {
@@ -231,25 +206,21 @@ class CrowdsourcingApp {
             }
             
         } finally {
-            // Разблокируем кнопку
             buttonElement.innerHTML = originalHTML;
             buttonElement.disabled = false;
         }
     }
 
-    // Открытие комментариев
     openComments(ideaId, title) {
         console.log(`💬 Открываем комментарии для идеи ${ideaId}: "${title}"`);
         
         this.currentIdeaId = ideaId;
         
-        // Обновляем заголовок в модальном окне
         const modalTitle = document.getElementById('modalTitle');
         if (modalTitle) {
             modalTitle.textContent = `Комментарии: ${title}`;
         }
         
-        // Очищаем старые комментарии
         const commentsContainer = document.getElementById('commentsContainer');
         if (commentsContainer) {
             commentsContainer.innerHTML = `
@@ -259,16 +230,13 @@ class CrowdsourcingApp {
             `;
         }
         
-        // Показываем модальное окно
         const modal = document.getElementById('commentModal');
         if (modal) {
             modal.style.display = 'block';
         }
         
-        // Загружаем комментарии
         this.loadAndDisplayComments(ideaId);
         
-        // Фокусируемся на поле ввода имени
         setTimeout(() => {
             const authorInput = document.getElementById('commentAuthor');
             if (authorInput) {
@@ -277,7 +245,6 @@ class CrowdsourcingApp {
         }, 100);
     }
 
-    // Загрузка и отображение комментариев
     async loadAndDisplayComments(ideaId) {
         try {
             console.log(`📥 Загружаем комментарии для идеи ${ideaId}`);
@@ -311,7 +278,6 @@ class CrowdsourcingApp {
         }
     }
 
-    // Отображение комментариев в модальном окне
     displayCommentsInModal(comments) {
         const container = document.getElementById('commentsContainer');
         if (!container) return;
@@ -342,13 +308,11 @@ class CrowdsourcingApp {
         `).join('');
     }
 
-    // Добавление новой идеи
     async submitIdea() {
         const title = document.getElementById('title').value.trim();
         const description = document.getElementById('description').value.trim();
         const author = document.getElementById('author').value.trim();
         
-        // Валидация
         if (!title || !description) {
             this.showError('Пожалуйста, заполните все поля');
             return;
@@ -364,7 +328,6 @@ class CrowdsourcingApp {
             return;
         }
         
-        // Показываем загрузку
         const submitBtn = document.querySelector('#ideaForm button[type="submit"]');
         const originalHTML = submitBtn.innerHTML;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Публикую...';
@@ -391,13 +354,10 @@ class CrowdsourcingApp {
             const result = await response.json();
             
             if (result.success) {
-                // Очищаем форму
                 document.getElementById('ideaForm').reset();
                 
-                // Показываем успех
                 this.showMessage('🎉 Идея успешно опубликована!', 'success');
                 
-                // Обновляем список идей
                 setTimeout(() => this.loadIdeas(), 1000);
                 
             } else {
@@ -409,13 +369,11 @@ class CrowdsourcingApp {
             this.showError(error.message || 'Не удалось опубликовать идею');
             
         } finally {
-            // Восстанавливаем кнопку
             submitBtn.innerHTML = originalHTML;
             submitBtn.disabled = false;
         }
     }
 
-    // Добавление комментария
     async submitComment() {
         if (!this.currentIdeaId) {
             this.showError('Не выбрана идея для комментария');
@@ -425,7 +383,6 @@ class CrowdsourcingApp {
         const author = document.getElementById('commentAuthor').value.trim();
         const text = document.getElementById('commentText').value.trim();
         
-        // Валидация
         if (!text) {
             this.showError('Пожалуйста, введите текст комментария');
             return;
@@ -436,7 +393,6 @@ class CrowdsourcingApp {
             return;
         }
         
-        // Показываем загрузку
         const submitBtn = document.querySelector('#commentForm button[type="submit"]');
         const originalHTML = submitBtn.innerHTML;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Отправляю...';
@@ -462,16 +418,12 @@ class CrowdsourcingApp {
             const result = await response.json();
             
             if (result.success) {
-                // Очищаем поле с текстом
                 document.getElementById('commentText').value = '';
                 
-                // Показываем успех
                 this.showMessage('💬 Комментарий добавлен!', 'success');
                 
-                // Обновляем комментарии
                 await this.loadAndDisplayComments(this.currentIdeaId);
                 
-                // Обновляем список идей (для счетчика комментариев)
                 setTimeout(() => this.loadIdeas(), 1000);
                 
             } else {
@@ -483,14 +435,12 @@ class CrowdsourcingApp {
             this.showError(error.message || 'Не удалось добавить комментарий');
             
         } finally {
-            // Восстанавливаем кнопку
             submitBtn.innerHTML = originalHTML;
             submitBtn.disabled = false;
         }
     }
 
 
-    // Отображение бейджа статуса
     getStatusBadge(status) {
         const badges = {
             'pending': '<span class="badge badge-pending"><i class="fas fa-clock"></i> На рассмотрении</span>',
@@ -503,7 +453,6 @@ class CrowdsourcingApp {
         return badges[status] || badges['pending'];
     }
 
-    // Экранирование HTML
     escapeHtml(text) {
         if (!text) return '';
         const div = document.createElement('div');
@@ -511,13 +460,10 @@ class CrowdsourcingApp {
         return div.innerHTML;
     }
 
-    // Показать сообщение об успехе/ошибке
     showMessage(text, type = 'info') {
-        // Удаляем старые сообщения
         const existing = document.querySelectorAll('.app-message');
         existing.forEach(msg => msg.remove());
         
-        // Создаем новое сообщение
         const message = document.createElement('div');
         message.className = `app-message message-${type}`;
         message.innerHTML = `
@@ -530,7 +476,6 @@ class CrowdsourcingApp {
             </div>
         `;
         
-        // Добавляем стили
         message.style.cssText = `
             position: fixed;
             top: 20px;
@@ -541,7 +486,6 @@ class CrowdsourcingApp {
         
         document.body.appendChild(message);
         
-        // Автоматическое скрытие через 4 секунды
         if (type !== 'error') {
             setTimeout(() => {
                 if (message.parentElement) {
@@ -556,28 +500,20 @@ class CrowdsourcingApp {
         }
     }
 
-    // Показать ошибку
     showError(text) {
         this.showMessage(text, 'error');
     }
 }
 
 
-// Глобальная переменная для приложения
 let app;
 
-// Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('📄 Документ загружен');
     
     try {
-        // Создаем экземпляр приложения
         app = new CrowdsourcingApp();
-        
-        // Делаем доступным глобально
         window.app = app;
-        
-        // Инициализируем приложение
         await app.init();
         
         console.log('✅ Приложение успешно запущено');
@@ -585,8 +521,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         
     } catch (error) {
         console.error('❌ Фатальная ошибка инициализации:', error);
-        
-        // Показываем сообщение об ошибке
         const container = document.getElementById('ideasContainer');
         if (container) {
             container.innerHTML = `
@@ -612,7 +546,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 
-// На случай если приложение не загрузилось
 window.voteForIdeaFallback = async function(ideaId) {
     console.log('⚡ Используем аварийную функцию голосования');
     
@@ -636,8 +569,6 @@ window.voteForIdeaFallback = async function(ideaId) {
 
 window.openCommentsFallback = function(ideaId, title) {
     console.log('⚡ Используем аварийную функцию комментариев');
-    
-    // Создаем простое модальное окно
     const modal = document.createElement('div');
     modal.style.cssText = `
         position: fixed;
@@ -684,8 +615,6 @@ window.openCommentsFallback = function(ideaId, title) {
     document.body.appendChild(modal);
 };
 
-
-// Старые функции для совместимости
 window.voteForIdea = function(ideaId) {
     if (window.app && window.app.voteForIdea) {
         const button = document.querySelector(`.vote-btn[data-idea-id="${ideaId}"]`);
@@ -706,6 +635,7 @@ window.openComments = function(ideaId, title) {
         window.openCommentsFallback(ideaId, title);
     }
 };
+
 
 
 
